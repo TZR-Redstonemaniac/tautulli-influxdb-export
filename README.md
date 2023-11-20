@@ -1,33 +1,19 @@
-# tautulli-influxdb-export
+# tautulli/sonarr/radarr/ombi-influxdb-export
 
-This script will query Tautulli to pull basic stats and store them in influxdb. Stay tuned for further additions!
+This script will query Tautulli/Sonarr/Radarr/Ombi to pull basic stats and store them in InfluxDB. Stay tuned for further additions!
 
-I suggest you intall the script as a service to boot with your OS.
+You should install the script as a service to boot with your OS.
 
 ## Dependencies
   * Tautulli (aka PlexPy) (https://github.com/Tautulli/Tautulli)
   * Python (v2.7.x)
   * InfluxDB (https://github.com/influxdata/influxdb)
-  * InfluxDB Python Client (https://github.com/influxdata/influxdb-python)
-    - install on linux via 'apt-get install python-influxdb'
-
-## Parameters
-  * --interval (in seconds, default: 5)
-  * --tautulliwebprotocol (http/https, default: http)
-  * --tautullihost (default, localhost)
-  * --tautulliport (default: 8181)
-  * --tautulliapikey (required, default: empty)
-  * --tautullibaseurl (default: empty)
-  * --influxdbhost (default: localhost)
-  * --influxdbport (default: 8086)
-  * --influxdbuser (default: empty)
-  * --influxdbpassword (default: empty)
-  * --influxdbdatabase (default: tautulli)
+  * InfluxDB Python Client (https://github.com/influxdata/influxdb-client-python)
 
 ## Example
 
   ```
-  python /path/to/tautulli_influxdb_export.py --tautullihost <host> --tautulliapikey <key>
+  python /path/to/tautulli_influxdb_export.py
   ```
 
 ## Docker Example
@@ -50,10 +36,9 @@ I suggest you intall the script as a service to boot with your OS.
     - *#* Total Users
     - *#* Home Users
     - *#* Users currently streaming concurrently
-    - *#* Users currently streaming conurrently (with different IP addresses)
+    - *#* Users currently streaming concurrently (with different IP addresses)
   * Libraries
     - *#* Total Items Per Library
-  * more to come...
 
 ### To Do:
   * Activity
