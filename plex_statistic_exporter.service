@@ -1,0 +1,13 @@
+[Unit]
+Description=Plex to InfluxDB
+After=multi-user.target
+
+[Service]
+Type=idle
+ExecStart=/usr/bin/python <path-to-git-clone>/plex_statistic_exporter.py
+Restart=on-failure
+RestartSec=15s
+TimeoutSec=15s
+
+[Install]
+WantedBy=multi-user.target
