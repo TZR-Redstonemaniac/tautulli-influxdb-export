@@ -1,9 +1,11 @@
 from datetime import datetime
-
+import logging
 import requests
 from influxdb_client import Point
 from influxdb_client.client.write_api import SYNCHRONOUS
 
+
+logging.basicConfig(format='[%(asctime)s] p%(process)s {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s')
 
 def get_requests(ombi_url, influxdb_client, influxBucket, ombi_api):
     try:
@@ -54,7 +56,7 @@ def get_requests(ombi_url, influxdb_client, influxBucket, ombi_api):
             write_client.write(bucket=influxBucket, record=line.to_line_protocol())
 
     except Exception as e:
-        print(str(e))
+        logging.warning(str(e))
         pass
 
 

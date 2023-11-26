@@ -1,9 +1,11 @@
 from datetime import datetime, timedelta
 from multiprocessing import Process
-
+import logging
 import requests
 from influxdb_client import Point
 from influxdb_client.client.write_api import SYNCHRONOUS
+
+logging.basicConfig(format='[%(asctime)s] p%(process)s {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s')
 
 
 def get_activity(tautulli_url, influxdb_client, influxBucket):
@@ -91,7 +93,7 @@ def get_activity(tautulli_url, influxdb_client, influxBucket):
             write_client.write(bucket=influxBucket, record=lines)
 
     except Exception as e:
-        print(str(e))
+        logging.warning(str(e))
         pass
 
 
@@ -130,7 +132,7 @@ def get_users(tautulli_url, influxdb_client, influxBucket):
 
             write_client.write(bucket=influxBucket, record=line.to_line_protocol())
     except Exception as e:
-        print(str(e))
+        logging.warning(str(e))
         pass
 
 
@@ -167,7 +169,7 @@ def get_libraries(tautulli_url, influxdb_client, influxBucket):
             write_client.write(bucket=influxBucket, record=line.to_line_protocol())
 
     except Exception as e:
-        print(str(e))
+        logging.warning(str(e))
         pass
 
 

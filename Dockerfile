@@ -5,4 +5,4 @@ COPY . /work
 WORKDIR /work
 
 RUN pip install -r requirements.txt
-CMD python tautulli_influxdb_export.py
+CMD python plex_statistic_exporter.py
