@@ -47,13 +47,13 @@ def get_queue(sonarr_url, influxdb_client, influxBucket, sonarr_api):
             write_client.write(bucket=influxBucket, record=line.to_line_protocol())
 
     except requests.exceptions.ConnectionError:
-        exception = ExceptionHandler("Invalid URL or Port", "Tautulli")
+        exception = ExceptionHandler("Invalid URL or Port", "Sonarr")
         exception.Debug()
 
         raise CustomException
 
     except Exception:
-        exception = ExceptionHandler(data['response']['message'], "Tautulli")
+        exception = ExceptionHandler(data['response']['message'], "Sonarr")
         exception.Debug()
 
         raise CustomException

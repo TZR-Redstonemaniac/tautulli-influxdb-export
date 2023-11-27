@@ -40,13 +40,13 @@ def get_queue(radarr_url, influxdb_client, influxBucket, radarr_api):
             write_client.write(bucket=influxBucket, record=line.to_line_protocol())
 
     except requests.exceptions.ConnectionError:
-        exception = ExceptionHandler("Invalid URL or Port", "Tautulli")
+        exception = ExceptionHandler("Invalid URL or Port", "Radarr")
         exception.Debug()
 
         raise CustomException
 
     except Exception:
-        exception = ExceptionHandler(data['response']['message'], "Tautulli")
+        exception = ExceptionHandler(data['response']['message'], "Radarr")
         exception.Debug()
 
         raise CustomException

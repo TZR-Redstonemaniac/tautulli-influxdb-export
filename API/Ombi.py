@@ -60,13 +60,13 @@ def get_requests(ombi_url, influxdb_client, influxBucket, ombi_api):
             write_client.write(bucket=influxBucket, record=line.to_line_protocol())
 
     except requests.exceptions.ConnectionError:
-        exception = ExceptionHandler("Invalid URL or Port", "Tautulli")
+        exception = ExceptionHandler("Invalid URL or Port", "Ombi")
         exception.Debug()
 
         raise CustomException
 
     except Exception:
-        exception = ExceptionHandler(movie_data['response']['message'], "Tautulli")
+        exception = ExceptionHandler(movie_data['response']['message'], "Ombi")
         exception.Debug()
 
         raise CustomException
@@ -106,13 +106,13 @@ def get_request_count(ombi_url, influxdb_client, influxBucket, ombi_api):
             write_client.write(bucket=influxBucket, record=line.to_line_protocol())
 
     except requests.exceptions.ConnectionError:
-        exception = ExceptionHandler("Invalid URL or Port", "Tautulli")
+        exception = ExceptionHandler("Invalid URL or Port", "Ombi")
         exception.Debug()
 
         raise CustomException
 
     except Exception:
-        exception = ExceptionHandler(data['response']['message'], "Tautulli")
+        exception = ExceptionHandler(data['response']['message'], "Ombi")
         exception.Debug()
 
         raise CustomException

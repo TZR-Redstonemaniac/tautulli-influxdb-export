@@ -1,27 +1,27 @@
-# tautulli/sonarr/radarr/ombi-influxdb-export
+# Plex Statistic Exporter
 
 This script will query Tautulli/Sonarr/Radarr/Ombi to pull basic stats and store them in InfluxDB. Stay tuned for further additions!
 
-You should install the script as a service to boot with your OS.
+You can install the script as a service to boot with your OS, or as a docker container.
 
 ## Dependencies
   * Tautulli (aka PlexPy) (https://github.com/Tautulli/Tautulli)
-  * Python (v2.7.x)
+  * Python (v3.11.x)
   * InfluxDB (https://github.com/influxdata/influxdb)
   * InfluxDB Python Client (https://github.com/influxdata/influxdb-client-python)
 
 ## Example
 
   ```
-  python /path/to/tautulli_influxdb_export.py
+  python /path/to/plex_statistic_exporter.py
   ```
 
 ## Docker Example
 
   ```
   cd <folder>
-  docker build -t tautulli_influxdb_export .
-  docker run -d --name=tautulli_influxdb_export --restart unless-stopped -e TAUTULLI_HOST=<host> -e TAUTULLI_KEY=<key> -e INFLUXDB_HOST=<influxdbhost> -e INFLUXDB_DB=<influxdbdatabase> tautulli_influxdb_export
+  docker build -t plex_statistic_exporter .
+  docker run -d --name=plex_statistic_exporter --restart unless-stopped -v /path/to/config:/config
   ```
 
 ## Exported Data
@@ -39,15 +39,6 @@ You should install the script as a service to boot with your OS.
     - *#* Users currently streaming concurrently (with different IP addresses)
   * Libraries
     - *#* Total Items Per Library
-
-### To Do:
-  * Activity
-    - *#* Audio Transcode Streams
-    - *#* Audio Transcode Streams (Playing)
-    - *#* Audio Direct Play Streams
-    - *#* Audio Direct Play Streams (Playing)
-  * Users
-    - Current Streaming Users Location Data (via IP lookup)
 
 ## Use-Case
   With the data exported to influxdb, you can create some useful stats/graphs in graphing tools such as grafana (http://grafana.org/)
