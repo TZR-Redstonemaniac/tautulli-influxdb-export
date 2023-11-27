@@ -42,7 +42,7 @@ def main():
 
 def parse_config():
     config = configparser.ConfigParser()
-    config.read('config.ini')
+    config.read('/config/config.ini')
 
     return config
 
