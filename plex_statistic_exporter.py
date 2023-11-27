@@ -5,6 +5,7 @@ import configparser
 import time
 
 from influxdb_client import InfluxDBClient
+from exception_handler import *
 
 from API import Sonarr, Ombi, Radarr, Tautulli
 
@@ -41,7 +42,7 @@ def main():
 
 def parse_config():
     config = configparser.ConfigParser()
-    config.read('/config/config.ini')
+    config.read('config.ini')
 
     return config
 
@@ -53,13 +54,15 @@ def init_exporting(interval,
                    ombi_url, ombi_api, ombi_bucket,
                    influxdb_client):
     while True:
-        Tautulli.export(tautulli_url, influxdb_client, tautulli_bucket)
-        Sonarr.export(sonarr_url, influxdb_client, sonarr_bucket, sonarr_api)
-        Radarr.export(radarr_url, influxdb_client, radarr_bucket, radarr_api)
-        Ombi.export(ombi_url, influxdb_client, ombi_bucket, ombi_api)
+        try:
+            Tautulli.export(tautulli_url, influxdb_client, tautulli_bucket)
+            Sonarr.export(sonarr_url, influxdb_client, sonarr_bucket, sonarr_api)
+            Radarr.export(radarr_url, influxdb_client, radarr_bucket, radarr_api)
+            Ombi.export(ombi_url, influxdb_client, ombi_bucket, ombi_api)
+        except CustomException:
+            pass
 
         time.sleep(int(interval))
-        print("Ran")
 
 
 def get_tautulli_url(host, port, apikey):

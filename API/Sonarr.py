@@ -4,14 +4,19 @@ import requests
 from influxdb_client import Point
 from influxdb_client.client.write_api import SYNCHRONOUS
 
+from exception_handler import ExceptionHandler, CustomException
+
 logging.basicConfig(format='[%(asctime)s] p%(process)s {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s')
 
 
 def get_queue(sonarr_url, influxdb_client, influxBucket, sonarr_api):
+    data = {}
+
     try:
         data = requests.get('{0}/api/{1}/?apikey={2}'.format(sonarr_url, 'queue', sonarr_api), verify=False).json()
 
         if data:
+            print(data)
             write_client = influxdb_client.write_api(write_options=SYNCHRONOUS)
             queue = data['response']['data']
 
@@ -41,9 +46,17 @@ def get_queue(sonarr_url, influxdb_client, influxBucket, sonarr_api):
 
             write_client.write(bucket=influxBucket, record=line.to_line_protocol())
 
-    except Exception as e:
-        logging.warning(str(e))
-        pass
+    except requests.exceptions.ConnectionError:
+        exception = ExceptionHandler("Invalid URL or Port", "Tautulli")
+        exception.Debug()
+
+        raise CustomException
+
+    except Exception:
+        exception = ExceptionHandler(data['response']['message'], "Tautulli")
+        exception.Debug()
+
+        raise CustomException
 
 
 def export(sonarr_url, influxdb_client, influxBucket, sonarr_api):

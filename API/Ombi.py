@@ -4,10 +4,14 @@ import requests
 from influxdb_client import Point
 from influxdb_client.client.write_api import SYNCHRONOUS
 
+from exception_handler import ExceptionHandler, CustomException
 
 logging.basicConfig(format='[%(asctime)s] p%(process)s {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s')
 
+
 def get_requests(ombi_url, influxdb_client, influxBucket, ombi_api):
+    movie_data = {}
+
     try:
         movie_data = requests.get('{0}/api/v1/{1}/?apikey={2}'.format(ombi_url, 'Request/movie', ombi_api), verify=False).json()
         tv_data = requests.get('{0}/api/v1/{1}/?apikey={2}'.format(ombi_url, 'Request/tv', ombi_api), verify=False).json()
@@ -55,40 +59,63 @@ def get_requests(ombi_url, influxdb_client, influxBucket, ombi_api):
 
             write_client.write(bucket=influxBucket, record=line.to_line_protocol())
 
-    except Exception as e:
-        logging.warning(str(e))
-        pass
+    except requests.exceptions.ConnectionError:
+        exception = ExceptionHandler("Invalid URL or Port", "Tautulli")
+        exception.Debug()
+
+        raise CustomException
+
+    except Exception:
+        exception = ExceptionHandler(movie_data['response']['message'], "Tautulli")
+        exception.Debug()
+
+        raise CustomException
 
 
 def get_request_count(ombi_url, influxdb_client, influxBucket, ombi_api):
-    data = requests.get('{0}/api/v1/{1}/?apikey={2}'.format(ombi_url, 'Request/count', ombi_api), verify=False).json()
+    data = {}
 
-    if data:
-        write_client = influxdb_client.write_api(write_options=SYNCHRONOUS)
+    try:
+        data = requests.get('{0}/api/v1/{1}/?apikey={2}'.format(ombi_url, 'Request/count', ombi_api), verify=False).json()
 
-        request = data['response']['data']
+        if data:
+            write_client = influxdb_client.write_api(write_options=SYNCHRONOUS)
 
-        total_requests = request['pending'] + request['approved'] + request['available']
-        pending_requests = request['pending']
-        approved_requests = request['approved']
-        available_requests = request['available']
+            request = data['response']['data']
 
-        json_body = {
-            "measurement": "get_request_count",
-            "time": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
-            "fields": {
-                "pending_requests": pending_requests,
-                "approved_requests": approved_requests,
-                "available_requests": available_requests,
-                "total_requests": total_requests
+            total_requests = request['pending'] + request['approved'] + request['available']
+            pending_requests = request['pending']
+            approved_requests = request['approved']
+            available_requests = request['available']
+
+            json_body = {
+                "measurement": "get_request_count",
+                "time": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+                "fields": {
+                    "pending_requests": pending_requests,
+                    "approved_requests": approved_requests,
+                    "available_requests": available_requests,
+                    "total_requests": total_requests
+                }
             }
-        }
 
-        line = Point(json_body['measurement']).time(json_body['time'])
-        for key, value in json_body['fields'].items():
-            line.field(key, str(value))
+            line = Point(json_body['measurement']).time(json_body['time'])
+            for key, value in json_body['fields'].items():
+                line.field(key, str(value))
 
-        write_client.write(bucket=influxBucket, record=line.to_line_protocol())
+            write_client.write(bucket=influxBucket, record=line.to_line_protocol())
+
+    except requests.exceptions.ConnectionError:
+        exception = ExceptionHandler("Invalid URL or Port", "Tautulli")
+        exception.Debug()
+
+        raise CustomException
+
+    except Exception:
+        exception = ExceptionHandler(data['response']['message'], "Tautulli")
+        exception.Debug()
+
+        raise CustomException
 
 
 def export(ombi_url, influxdb_client, influxBucket, ombi_api):
