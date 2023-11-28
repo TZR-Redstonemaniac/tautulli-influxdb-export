@@ -1,16 +1,13 @@
-import logging
-import traceback
 from datetime import datetime
-from exception_handler import *
 
 import requests
 from influxdb_client import Point
 from influxdb_client.client.write_api import SYNCHRONOUS
 
-logging.basicConfig(format='[%(asctime)s] p%(process)s {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s')
+from exception_handler import *
 
 
-def get_activity(tautulli_url, influxdb_client, influxBucket):
+def get_overall_activity(tautulli_url, influxdb_client, influxBucket):
     data = {}
 
     try:
@@ -70,7 +67,7 @@ def get_activity(tautulli_url, influxdb_client, influxBucket):
                         concurrent_stream_user_diffip_count += 1
 
                 json_body = {
-                    "measurement": "Activity",
+                    "measurement": "Overall_Activity",
                     "time": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
                     "fields": {
                         "stream_count": total_stream_count,
@@ -87,7 +84,7 @@ def get_activity(tautulli_url, influxdb_client, influxBucket):
                 }
             else:
                 json_body = {
-                    "measurement": "Activity",
+                    "measurement": "Overall_Activity",
                     "time": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
                     "fields": {
                         "stream_count": 0,
@@ -108,6 +105,61 @@ def get_activity(tautulli_url, influxdb_client, influxBucket):
                 line.field(key, str(value))
 
             write_client.write(bucket=influxBucket, record=line)
+
+    except requests.exceptions.ConnectionError:
+        exception = ExceptionHandler("Invalid URL or Port", "Tautulli")
+        exception.Debug()
+
+        raise CustomException
+
+    except Exception:
+        exception = ExceptionHandler(data['response']['message'], "Tautulli")
+        exception.Debug()
+
+        raise CustomException
+
+
+def get_user_activity(tautulli_url, influxdb_client, influxBucket):
+    data = {}
+
+    try:
+        data = requests.get('{0}{1}'.format(tautulli_url, '&cmd=get_activity'), verify=False).json()
+
+        if data:
+            write_client = influxdb_client.write_api(write_options=SYNCHRONOUS)
+            if data['response']['message'] != "None":
+                sessions = data['response']['data']['sessions']
+
+                json_body = {
+                    "measurement": "User_Activity",
+                    "time": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    "fields": {}
+                }
+
+                for s in sessions:
+                    # check for concurrent streams
+                    username = s['username']
+                    device = s['device']
+                    player_state = "Playing" if s['state'] == 'playing' else "Paused"
+                    quality = s['stream_video_full_resolution']
+                    limits = s['quality_profile']
+                    media = s['full_title']
+                    stream = s['transcode_decision']
+
+                    json_body['fields'] = {
+                        "device": device,
+                        "player_state": player_state,
+                        "quality": quality,
+                        "limits": limits,
+                        "media": media,
+                        "stream": stream
+                    }
+
+                    line = Point(json_body['measurement']).time(json_body['time']).tag("username", username)
+                    for key, value in json_body['fields'].items():
+                        line.field(key, str(value))
+
+                    write_client.write(bucket=influxBucket, record=line)
 
     except requests.exceptions.ConnectionError:
         exception = ExceptionHandler("Invalid URL or Port", "Tautulli")
@@ -230,6 +282,7 @@ def num(s):
 
 
 def export(tautulli_url, influxdb_client, influxBucket):
-    get_activity(tautulli_url, influxdb_client, influxBucket)
+    get_overall_activity(tautulli_url, influxdb_client, influxBucket)
+    get_user_activity(tautulli_url, influxdb_client, influxBucket)
     get_users(tautulli_url, influxdb_client, influxBucket)
     get_libraries(tautulli_url, influxdb_client, influxBucket)
