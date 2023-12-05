@@ -1,8 +1,12 @@
 from datetime import datetime
 
+import geoip2.database
+import geoip2.errors
 import requests
+import geohash2
 from influxdb_client import Point
 from influxdb_client.client.write_api import SYNCHRONOUS
+
 
 from exception_handler import *
 
@@ -15,7 +19,7 @@ def get_overall_activity(tautulli_url, influxdb_client, influxBucket):
 
         if data:
             write_client = influxdb_client.write_api(write_options=SYNCHRONOUS)
-            if data['response']['message'] is not None:
+            if data['response']['message'] != "None":
 
                 total_stream_count = int(data['response']['data']['stream_count'])
 
@@ -79,7 +83,7 @@ def get_overall_activity(tautulli_url, influxdb_client, influxBucket):
                         "stream_directstream_count": direct_stream_stream_count,
                         "stream_directstream_playing_count": direct_stream_stream_playing_count,
                         "user_concurrent_count": concurrent_stream_user_count,
-                        "user_concurrent_diffip_count": concurrent_stream_user_diffip_count
+                        "user_concurrent_diffip_count": concurrent_stream_user_diffip_count,
                     }
                 }
             else:
@@ -96,7 +100,7 @@ def get_overall_activity(tautulli_url, influxdb_client, influxBucket):
                         "stream_directstream_count": 0,
                         "stream_directstream_playing_count": 0,
                         "user_concurrent_count": 0,
-                        "user_concurrent_diffip_count": 0
+                        "user_concurrent_diffip_count": 0,
                     }
                 }
 
@@ -127,39 +131,48 @@ def get_user_activity(tautulli_url, influxdb_client, influxBucket):
 
         if data:
             write_client = influxdb_client.write_api(write_options=SYNCHRONOUS)
-            if data['response']['message'] != "None":
-                sessions = data['response']['data']['sessions']
 
-                json_body = {
-                    "measurement": "User_Activity",
-                    "time": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
-                    "fields": {}
+            sessions = data['response']['data']['sessions']
+
+            json_body = {
+                "measurement": "User_Activity",
+                "time": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+                "fields": {}
+            }
+
+            for s in sessions:
+                # check for concurrent streams
+                username = s['username']
+                device = s['device']
+                player_state = "Playing" if s['state'] == 'playing' else "Paused"
+                quality = s['stream_video_full_resolution']
+                limits = s['quality_profile']
+                media = s['full_title']
+                stream = s['transcode_decision']
+                ip = s['ip_address']
+                geohash = ""
+
+                location = get_location_from_ip(ip)
+                if location:
+                    latitude, longitude = location
+                    geohash = geohash2.encode(latitude, longitude, precision=12)
+
+                json_body['fields'] = {
+                    "username": username,
+                    "device": device,
+                    "player_state": player_state,
+                    "quality": quality,
+                    "limits": limits,
+                    "media": media,
+                    "stream": stream,
+                    "geohash": geohash
                 }
 
-                for s in sessions:
-                    # check for concurrent streams
-                    username = s['username']
-                    device = s['device']
-                    player_state = "Playing" if s['state'] == 'playing' else "Paused"
-                    quality = s['stream_video_full_resolution']
-                    limits = s['quality_profile']
-                    media = s['full_title']
-                    stream = s['transcode_decision']
+                line = Point(json_body['measurement']).time(json_body['time']).tag("username", username)
+                for key, value in json_body['fields'].items():
+                    line.field(key, str(value))
 
-                    json_body['fields'] = {
-                        "device": device,
-                        "player_state": player_state,
-                        "quality": quality,
-                        "limits": limits,
-                        "media": media,
-                        "stream": stream
-                    }
-
-                    line = Point(json_body['measurement']).time(json_body['time']).tag("username", username)
-                    for key, value in json_body['fields'].items():
-                        line.field(key, str(value))
-
-                    write_client.write(bucket=influxBucket, record=line)
+                write_client.write(bucket=influxBucket, record=line)
 
     except requests.exceptions.ConnectionError:
         exception = ExceptionHandler("Invalid URL or Port", "Tautulli")
@@ -279,6 +292,17 @@ def num(s):
         return int(s)
     except ValueError:
         return float(s)
+
+
+def get_location_from_ip(ip):
+    reader = geoip2.database.Reader('GeoLite2-City.mmdb')
+    try:
+        response = reader.city(ip)
+        latitude = response.location.latitude
+        longitude = response.location.longitude
+        return latitude, longitude
+    except geoip2.errors.AddressNotFoundError:
+        return None
 
 
 def export(tautulli_url, influxdb_client, influxBucket):

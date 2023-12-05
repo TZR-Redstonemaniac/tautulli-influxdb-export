@@ -20,7 +20,11 @@ def get_requests(ombi_url, influxdb_client, influxBucket, ombi_api):
             "measurement": "get_requests",
             "time": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
             "fields": {
-                "total_request_count": 0
+                "total_request_count": 0,
+                "processing_request_count": 0,
+                "completed_request_count": 0,
+                "movie_request_count": 0,
+                "show_request_count": 0
             }
         }
 
@@ -33,11 +37,18 @@ def get_requests(ombi_url, influxdb_client, influxBucket, ombi_api):
             json_body['fields']['movie_request_count'] = movieLength
             json_body['fields']['total_request_count'] += movieLength
 
-            for movieRequest in movies:
-                json_body['fields'][movieRequest['title']] = {
-                    "requested_user": movieRequest['requestedUser']['userName'],
-                    "requested_date": movieRequest['requestedDate']
-                }
+            for movie in movies:
+                processingCount = 0
+                doneCount = 0
+                status = movie["requestStatus"]
+
+                if status == "Common.ProcessingRequest":
+                    processingCount += 1
+                else:
+                    doneCount += 1
+
+                json_body['fields']['processing_request_count'] += processingCount
+                json_body['fields']['completed_request_count'] += doneCount
 
         if tv_data:
             shows = tv_data
@@ -46,11 +57,19 @@ def get_requests(ombi_url, influxdb_client, influxBucket, ombi_api):
             json_body['fields']['show_request_count'] = showLength
             json_body['fields']['total_request_count'] += showLength
 
-            for showRequest in shows:
-                json_body['fields'][showRequest['title']] = {
-                    "requested_user": showRequest['childRequests'][0]['requestedUser']['userName'],
-                    "requested_date": showRequest['childRequests'][0]['requestedDate']
-                }
+            for show in shows:
+                processingCount = 0
+                doneCount = 0
+                for childRequest in show["childRequests"]:
+                    status = childRequest["requestStatus"]
+
+                    if status == "Common.ProcessingRequest":
+                        processingCount += 1
+                    else:
+                        doneCount += 1
+
+                json_body['fields']['processing_request_count'] += processingCount
+                json_body['fields']['completed_request_count'] += doneCount
 
         if tv_data or movie_data:
             line = Point(json_body['measurement']).time(json_body['time'])

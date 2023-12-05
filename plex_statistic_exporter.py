@@ -62,6 +62,7 @@ def init_exporting(interval,
         except CustomException:
             pass
 
+        print("Exported")
         time.sleep(int(interval))
 
 
